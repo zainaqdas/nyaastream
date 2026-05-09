@@ -4,6 +4,11 @@ const { createClient } = require('redis');
 const connectDB = async () => {
   try {
     const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/nyaapi';
+    
+    // Diagnostic log (Masked)
+    const maskedURI = mongoURI.replace(/:([^@]+)@/, ':***@');
+    console.log(`Connecting to MongoDB with URI: ${maskedURI}`);
+
     await mongoose.connect(mongoURI);
     console.log('MongoDB Connected...');
   } catch (err) {
