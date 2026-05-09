@@ -1,8 +1,9 @@
-const jwt = require('jsonwebtoken');
 const Anime = require('../models/Anime');
 const Episode = require('../models/Episode');
-const User = require('../models/User');
 const anilist = require('../services/anilist');
+const nyaa = require('../services/nyaa');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
@@ -45,8 +46,9 @@ const resolvers = {
       let anime = await Anime.findOne({ anilistId: id });
       if (!anime) {
         const details = await anilist.fetchDetails(id);
-        anime = {
+        anime = new Anime({
           anilistId: details.id,
+          nyaaTitle: details.title.romaji,
           metadata: {
             titles: details.title,
             description: details.description,
@@ -56,15 +58,22 @@ const resolvers = {
             studios: details.studios.nodes,
             status: details.status,
             averageScore: details.averageScore,
-            episodes: details.episodes
           },
           totalEpisodes: details.episodes
-        };
+        });
+        await anime.save(); // Log to DB on first view
       }
       return anime;
     },
     getEpisodeTorrents: async (_, { anilistId, episodeNumber }) => {
-      return await Episode.findOne({ anilistId, episodeNumber });
+      let anime = await Anime.findOne({ anilistId });
+      if (!anime) {
+        // If not in DB, trigger metadata fetch and log first
+        anime = await resolvers.Query.getAnimeDetails(null, { id: anilistId });
+      }
+
+      const title = anime.metadata.titles.romaji || anime.metadata.titles.english;
+      return await nyaa.ensureEpisodeIndexed(anilistId, title, episodeNumber);
     },
     me: async (_, __, { user }) => {
       if (!user) return null;
@@ -130,12 +139,7 @@ const resolvers = {
   User: {
     watchlist: async (parent) => {
       return await Promise.all(parent.watchlist.map(async id => {
-        let anime = await Anime.findOne({ anilistId: id });
-        if (!anime) {
-          const details = await anilist.fetchDetails(id);
-          return { anilistId: id, metadata: { titles: details.title, coverImage: details.coverImage.large } };
-        }
-        return anime;
+        return await resolvers.Query.getAnimeDetails(null, { id });
       }));
     }
   }
