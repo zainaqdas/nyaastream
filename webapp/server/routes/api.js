@@ -3,6 +3,25 @@ const router = express.Router();
 const anilist = require('../services/anilist');
 const jikan = require('../services/jikan');
 const nyaa = require('../services/nyaa');
+const { scrapeLatest } = require('../services/scraper');
+
+const SCRAPER_KEY = process.env.SCRAPER_KEY || 'default_key';
+
+router.get('/scrape', async (req, res) => {
+  const { key } = req.query;
+  if (key !== SCRAPER_KEY) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    console.log('Manual scrape triggered via API');
+    // Run in background
+    scrapeLatest();
+    res.json({ message: 'Scraper started' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 router.get('/trending', async (req, res) => {
   try {

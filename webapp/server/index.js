@@ -12,14 +12,14 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
-// Connect to Databases
-connectDB();
-connectRedis();
+// Middleware
+app.use(cors());
+app.use(express.json());
 
-// Start Background Services
-startScraper();
+// Routes
+app.use('/api', apiRoutes);
 
-async function startServer() {
+async function setupApollo() {
   const server = new ApolloServer({
     typeDefs,
     resolvers,
@@ -40,15 +40,34 @@ async function startServer() {
 
   await server.start();
   server.applyMiddleware({ app });
+  return server;
+}
 
-  app.use(cors());
-  app.use(express.json());
-  app.use('/api', apiRoutes);
+// Initialization
+let apolloStarted = false;
+const init = async () => {
+  if (!apolloStarted) {
+    await connectDB();
+    await connectRedis();
+    await setupApollo();
+    apolloStarted = true;
+  }
+};
 
-  app.listen(PORT, () => {
-    console.log(`NyaaStream server running on port ${PORT}`);
-    console.log(`GraphQL endpoint: http://localhost:${PORT}${server.graphqlPath}`);
+// Vercel serverless function entry point
+app.use(async (req, res, next) => {
+  await init();
+  next();
+});
+
+// Local development server
+if (process.env.NODE_ENV !== 'production' && require.main === module) {
+  init().then(() => {
+    startScraper();
+    app.listen(PORT, () => {
+      console.log(`NyaaStream server running on port ${PORT}`);
+    });
   });
 }
 
-startServer();
+module.exports = app;
