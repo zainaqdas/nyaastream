@@ -28,11 +28,15 @@ async function ensureEpisodeIndexed(anilistId, animeTitle, episodeNumber) {
   }
 
   // 3. Otherwise, live scrape from Nyaa
-  console.log(`On-demand scrape for: ${animeTitle} Ep ${episodeNumber}`);
-  const query = `${animeTitle} ${episodeNumber}`.trim();
+  const paddedEpisode = episodeNumber < 10 ? `0${episodeNumber}` : episodeNumber;
+  console.log(`On-demand scrape for: ${animeTitle} Ep ${episodeNumber} (Query: ${paddedEpisode})`);
+  
+  // Use padded episode for precision, but avoid quotes for title to be less restrictive
+  const query = `${animeTitle} ${paddedEpisode}`.trim();
   
   try {
-    const results = await si.search(query, 20, { category: '1_0' });
+    // Increase limit to 30 to have more chances of finding the right torrent
+    const results = await si.search(query, 30, { category: '1_0' });
     
     if (!episode) {
       episode = new Episode({ anilistId, episodeNumber, torrents: [] });

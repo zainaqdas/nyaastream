@@ -35,12 +35,12 @@ const parseTitle = (title) => {
   // Pattern 1: - 01 [
   // Pattern 2: E01
   // Pattern 3: _ 01 _
-  const epMatch = title.match(/(?:\s-\s|E|S\d+E|_\s|episode\s)(\d+)(?:\s|\[|\.|\s-)/i);
+  const epMatch = title.match(/(?:\s-\s|E|S\d+E|_\s|episode\s)(\d+)(?:\s|\[|\.|\(|\-|v\d+|$)/i);
   if (epMatch) {
     result.episodeNumber = parseInt(epMatch[1]);
   } else {
-    // Fallback for simple space-separated episode number
-    const simpleEpMatch = title.match(/\s(\d{2,3})\s/);
+    // Fallback for simple space-separated episode number (now supports 1-3 digits)
+    const simpleEpMatch = title.match(/\s(\d{1,3})\s/);
     if (simpleEpMatch) {
       result.episodeNumber = parseInt(simpleEpMatch[1]);
     }
