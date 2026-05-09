@@ -10,8 +10,24 @@
       "destination": "/api/index.js"
     },
     {
+      "source": "/static/(.*)",
+      "destination": "/webapp/client/build/static/$1"
+    },
+    {
+      "source": "/favicon.ico",
+      "destination": "/webapp/client/build/favicon.ico"
+    },
+    {
+      "source": "/manifest.json",
+      "destination": "/webapp/client/build/manifest.json"
+    },
+    {
+      "source": "/logo(.*)",
+      "destination": "/webapp/client/build/logo$1"
+    },
+    {
       "source": "/(.*)",
-      "destination": "/webapp/client/build/$1"
+      "destination": "/webapp/client/build/index.html"
     }
   ],
   "crons": [
