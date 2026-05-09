@@ -12,15 +12,15 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
-// Middleware
+// 1. Basic Middlewares (Non-body consuming)
 app.use(cors());
-app.use(express.json());
 
-// Routes
-app.use('/api', apiRoutes);
+// 2. Apollo Server Setup
+let server = null;
+async function getApolloServer() {
+  if (server) return server;
 
-async function setupApollo() {
-  const server = new ApolloServer({
+  server = new ApolloServer({
     typeDefs,
     resolvers,
     context: ({ req }) => {
@@ -39,34 +39,44 @@ async function setupApollo() {
   });
 
   await server.start();
-  server.applyMiddleware({ app });
   return server;
 }
 
-// Initialization
-let apolloStarted = false;
+// 3. Initialization Logic
+let initialized = false;
 const init = async () => {
-  if (!apolloStarted) {
-    await connectDB();
-    await connectRedis();
-    await setupApollo();
-    apolloStarted = true;
-  }
+  if (initialized) return;
+  await connectDB();
+  await connectRedis();
+  const apollo = await getApolloServer();
+  // Apply Apollo to the app - only once
+  apollo.applyMiddleware({ app, path: '/graphql' });
+  initialized = true;
 };
 
-// Vercel serverless function entry point
+// 4. Vercel Handler / Middleware
+// We use a wrapper to ensure init is called before any route handling
 app.use(async (req, res, next) => {
-  await init();
-  next();
+  try {
+    await init();
+    next();
+  } catch (err) {
+    next(err);
+  }
 });
 
-// Local development server
+// 5. API Routes (Body parser applied ONLY here to avoid conflict with Apollo)
+app.use('/api', express.json(), apiRoutes);
+
+// 6. Local Development
 if (process.env.NODE_ENV !== 'production' && require.main === module) {
   init().then(() => {
     startScraper();
     app.listen(PORT, () => {
       console.log(`NyaaStream server running on port ${PORT}`);
     });
+  }).catch(err => {
+    console.error('Initialization failed:', err);
   });
 }
 
