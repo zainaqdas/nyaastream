@@ -75,3 +75,20 @@ export const GET_ANIME_DETAILS = gql`
     }
   }
 `;
+
+export const GET_EPISODE_TORRENTS = gql`
+  query GetEpisodeTorrents($anilistId: Int!, $episodeNumber: Int!) {
+    getEpisodeTorrents(anilistId: $anilistId, episodeNumber: $episodeNumber) {
+      episodeNumber
+      torrents {
+        title
+        releaseGroup
+        quality
+        seeders
+        leechers
+        magnet
+        size
+      }
+    }
+  }
+`;

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery } from '@apollo/client';
-import { GET_ANIME_DETAILS } from '../graphql/queries';
+import { useQuery, useLazyQuery } from '@apollo/client';
+import { GET_ANIME_DETAILS, GET_EPISODE_TORRENTS } from '../graphql/queries';
 import Navbar from '../components/Navbar';
 import { Loader2, Star, Calendar, Clock, Film, Download, Copy, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,6 +14,29 @@ const AnimeDetails: React.FC = () => {
   const { loading, error, data } = useQuery(GET_ANIME_DETAILS, {
     variables: { id: parseInt(id || '0') },
   });
+
+  // Automatic on-demand trigger
+  const [fetchTorrents, { loading: torrentsLoading, data: torrentsData }] = useLazyQuery(GET_EPISODE_TORRENTS);
+
+  const anime = data?.getAnimeDetails;
+  const currentEpisodeFromMain = anime?.episodes.find((e: any) => e.episodeNumber === selectedEpisode);
+  const currentEpisodeFromLazy = torrentsData?.getEpisodeTorrents;
+  
+  // Use lazy data if available, otherwise fallback to main data
+  const currentEpisodeData = (currentEpisodeFromLazy?.episodeNumber === selectedEpisode) 
+    ? currentEpisodeFromLazy 
+    : currentEpisodeFromMain;
+
+  useEffect(() => {
+    if (anime && (!currentEpisodeFromMain || currentEpisodeFromMain.torrents.length === 0)) {
+      fetchTorrents({
+        variables: {
+          anilistId: anime.anilistId,
+          episodeNumber: selectedEpisode
+        }
+      });
+    }
+  }, [selectedEpisode, anime, currentEpisodeFromMain, fetchTorrents]);
 
   if (loading) {
     return (
@@ -31,7 +54,6 @@ const AnimeDetails: React.FC = () => {
     );
   }
 
-  const anime = data.getAnimeDetails;
   const { metadata } = anime;
   const title = metadata.titles.english || metadata.titles.romaji;
 
@@ -40,8 +62,6 @@ const AnimeDetails: React.FC = () => {
     setCopiedHash(magnet);
     setTimeout(() => setCopiedHash(null), 2000);
   };
-
-  const currentEpisodeData = anime.episodes.find((e: any) => e.episodeNumber === selectedEpisode);
 
   return (
     <div className="min-h-screen bg-background text-slate-100 pb-20">
@@ -160,7 +180,12 @@ const AnimeDetails: React.FC = () => {
 
             <div className="space-y-4">
               <AnimatePresence mode="wait">
-                {currentEpisodeData?.torrents.length > 0 ? (
+                {torrentsLoading ? (
+                  <div className="flex flex-col items-center justify-center py-20 bg-white/5 rounded-3xl border border-white/10">
+                    <Loader2 className="animate-spin text-primary mb-4" size={32} />
+                    <p className="text-slate-400 font-medium">Searching Nyaa.si for torrents...</p>
+                  </div>
+                ) : currentEpisodeData?.torrents.length > 0 ? (
                   currentEpisodeData.torrents.map((torrent: any, idx: number) => (
                     <motion.div
                       key={torrent.magnet}
@@ -219,10 +244,8 @@ const AnimeDetails: React.FC = () => {
                   ))
                 ) : (
                   <div className="text-center py-20 bg-white/5 border border-dashed border-white/10 rounded-3xl">
-                    <p className="text-slate-400 font-medium">No torrents indexed for this episode yet.</p>
-                    <button className="mt-4 text-primary font-bold hover:underline">
-                      Trigger Manual Scrape
-                    </button>
+                    <p className="text-slate-400 font-medium">No torrents found for this episode on Nyaa.si.</p>
+                    <p className="text-slate-600 text-sm mt-2">Try searching again in a few hours.</p>
                   </div>
                 )}
               </AnimatePresence>
