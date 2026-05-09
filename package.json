@@ -4,7 +4,7 @@
   "description": "Non-official api for getting torrent links from Nyaa.si and Nyaa.pantsu.cat",
   "main": "src/index.js",
   "scripts": {
-    "build": "cd webapp/client && npm install --legacy-peer-deps && npm run build",
+    "build": "cd webapp/client && npm install --legacy-peer-deps && CI=false npm run build",
     "vercel-build": "npm run build",
     "lint": "standard --verbose --fix | snazzy",
     "test:si": "nyc ava --verbose --serial test/si.test.js",

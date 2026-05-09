@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { GET_ANIME_DETAILS } from '../graphql/queries';
 import Navbar from '../components/Navbar';
-import { Loader2, Play, Star, Calendar, Clock, Film, Download, Copy, Check } from 'lucide-react';
+import { Loader2, Star, Calendar, Clock, Film, Download, Copy, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AnimeDetails: React.FC = () => {
