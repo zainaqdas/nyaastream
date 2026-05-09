@@ -1,0 +1,30 @@
+const mongoose = require('mongoose');
+const { createClient } = require('redis');
+
+const connectDB = async () => {
+  try {
+    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/nyaapi';
+    await mongoose.connect(mongoURI);
+    console.log('MongoDB Connected...');
+  } catch (err) {
+    console.error('MongoDB connection error:', err.message);
+    process.exit(1);
+  }
+};
+
+const redisClient = createClient({
+  url: process.env.REDIS_URL || 'redis://localhost:6379'
+});
+
+redisClient.on('error', (err) => console.error('Redis Client Error', err));
+
+const connectRedis = async () => {
+  try {
+    await redisClient.connect();
+    console.log('Redis Connected...');
+  } catch (err) {
+    console.error('Redis connection error:', err.message);
+  }
+};
+
+module.exports = { connectDB, redisClient, connectRedis };
