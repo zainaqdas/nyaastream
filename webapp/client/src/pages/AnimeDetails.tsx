@@ -3,13 +3,15 @@ import { useParams } from 'react-router-dom';
 import { useQuery, useLazyQuery } from '@apollo/client';
 import { GET_ANIME_DETAILS, GET_EPISODE_TORRENTS } from '../graphql/queries';
 import Navbar from '../components/Navbar';
-import { Loader2, Star, Calendar, Clock, Film, Download, Copy, Check } from 'lucide-react';
+import StreamPlayer from '../components/StreamPlayer';
+import { Loader2, Star, Calendar, Clock, Film, Download, Copy, Check, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const AnimeDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [selectedEpisode, setSelectedEpisode] = useState<number>(1);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
+  const [activeStream, setActiveStream] = useState<{ magnet: string, title: string } | null>(null);
 
   const { loading, error, data } = useQuery(GET_ANIME_DETAILS, {
     variables: { id: parseInt(id || '0') },
@@ -179,7 +181,7 @@ const AnimeDetails: React.FC = () => {
             </h3>
 
             <div className="space-y-4">
-              <AnimatePresence mode="wait">
+              <AnimatePresence mode="popLayout">
                 {torrentsLoading ? (
                   <div className="flex flex-col items-center justify-center py-20 bg-white/5 rounded-3xl border border-white/10">
                     <Loader2 className="animate-spin text-primary mb-4" size={32} />
@@ -224,6 +226,13 @@ const AnimeDetails: React.FC = () => {
 
                           <div className="flex gap-2">
                             <button
+                              onClick={() => setActiveStream({ magnet: torrent.magnet, title: torrent.title })}
+                              className="flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-white px-5 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-secondary/10"
+                            >
+                              <Play size={18} fill="currentColor" />
+                              Watch
+                            </button>
+                            <button
                               onClick={() => handleCopy(torrent.magnet)}
                               className="p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-white/10"
                               title="Copy Magnet Link"
@@ -253,6 +262,15 @@ const AnimeDetails: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {activeStream && (
+        <StreamPlayer
+          magnet={activeStream.magnet}
+          title={activeStream.title}
+          poster={metadata.coverImage}
+          onClose={() => setActiveStream(null)}
+        />
+      )}
     </div>
   );
 };
