@@ -1,6 +1,6 @@
 const Anime = require('../models/Anime');
 const Episode = require('../models/Episode');
-const anilist = require('../services/anilist');
+const animeService = require('../services/animeService');
 const nyaa = require('../services/nyaa');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
@@ -14,13 +14,13 @@ const generateToken = (id) => {
 const resolvers = {
   Query: {
     getTrendingAnime: async (_, { page, perPage }) => {
-      const mediaList = await anilist.fetchTrending(page, perPage);
+      const mediaList = await animeService.fetchTrending(page, perPage);
       return mediaList.map(media => ({
         anilistId: media.id,
         metadata: {
           titles: media.title,
           description: media.description,
-          coverImage: media.coverImage.extraLarge || media.coverImage.large,
+          coverImage: media.coverImage.extraLarge,
           bannerImage: media.bannerImage,
           genres: media.genres,
           averageScore: media.averageScore,
@@ -32,7 +32,7 @@ const resolvers = {
     },
     searchAnime: async (_, { query, page, perPage }) => {
       console.log(`[Resolver] searchAnime called with query: "${query}", page: ${page}, perPage: ${perPage}`);
-      const mediaList = await anilist.searchAnime(query, page, perPage);
+      const mediaList = await animeService.searchAnime(query, page, perPage);
       console.log(`[Resolver] searchAnime returned ${mediaList?.length || 0} results`);
       
       if (!mediaList) return [];
@@ -42,7 +42,7 @@ const resolvers = {
         metadata: {
           titles: media.title,
           description: media.description,
-          coverImage: media.coverImage?.large,
+          coverImage: media.coverImage.large,
           averageScore: media.averageScore
         }
       }));
@@ -50,7 +50,9 @@ const resolvers = {
     getAnimeDetails: async (_, { id }) => {
       let anime = await Anime.findOne({ anilistId: id });
       if (!anime) {
-        const details = await anilist.fetchDetails(id);
+        const details = await animeService.fetchDetails(id);
+        if (!details) return null;
+        
         anime = new Anime({
           anilistId: details.id,
           nyaaTitle: details.title.romaji,
@@ -66,7 +68,7 @@ const resolvers = {
           },
           totalEpisodes: details.episodes
         });
-        await anime.save(); // Log to DB on first view
+        await anime.save();
       }
       return anime;
     },
