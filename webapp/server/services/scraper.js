@@ -1,7 +1,7 @@
 const cron = require('node-cron');
 const si = require('../../../src/si');
 const { parseTitle } = require('../utils/torrentParser');
-const anilist = require('./anilist');
+const animeService = require('./animeService');
 const Anime = require('../models/Anime');
 const Episode = require('../models/Episode');
 
@@ -22,8 +22,8 @@ const scrapeLatest = async () => {
       const parsed = parseTitle(torrent.name);
       if (!parsed.title || parsed.episodeNumber === null) continue;
 
-      // Try to find matching anime in AniList
-      const searchResults = await anilist.searchAnime(parsed.title, 1, 1);
+      // Try to find matching anime in Jikan
+      const searchResults = await animeService.searchAnime(parsed.title, 1, 1);
       if (searchResults.length === 0) continue;
 
       const media = searchResults[0];
@@ -31,9 +31,11 @@ const scrapeLatest = async () => {
       // Update or create Anime record
       let anime = await Anime.findOne({ anilistId: media.id });
       if (!anime) {
-        const details = await anilist.fetchDetails(media.id);
+        const details = await animeService.fetchDetails(media.id);
+        if (!details) continue;
+
         anime = new Anime({
-          anilistId: media.id,
+          anilistId: details.id,
           nyaaTitle: parsed.title,
           metadata: {
             titles: details.title,
