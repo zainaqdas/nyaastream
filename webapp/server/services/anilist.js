@@ -107,7 +107,7 @@ async function searchAnime(search, page = 1, perPage = 20) {
   
   if (!cleanSearch) return [];
 
-  const cacheKey = `search:v2:${cleanSearch}:${p}:${pp}`;
+  const cacheKey = `search:v3:${cleanSearch}:${p}:${pp}`;
   try {
     const cached = await redisClient.get(cacheKey);
     if (cached) {
@@ -144,7 +144,7 @@ async function searchAnime(search, page = 1, perPage = 20) {
       coverImage: {
         large: item.images.jpg.large_image_url || item.images.jpg.image_url
       },
-      averageScore: item.score * 10,
+      averageScore: Math.round(item.score * 10),
       description: item.synopsis
     }));
 
