@@ -115,8 +115,13 @@ async function searchAnime(search, page = 1, perPage = 20) {
   try {
     const cached = await redisClient.get(cacheKey);
     if (cached) {
-      console.log(`[Anilist] Cache hit for search: ${search}`);
-      return JSON.parse(cached);
+      const parsed = JSON.parse(cached);
+      // Only return from cache if it actually has results
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        console.log(`[Anilist] Cache hit for search: ${search} (${parsed.length} results)`);
+        return parsed;
+      }
+      console.log(`[Anilist] Cache hit for ${search} but was empty. Forcing fresh fetch...`);
     }
   } catch (err) {
     console.error('[Anilist] Redis error:', err);
