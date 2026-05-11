@@ -107,27 +107,50 @@ async function fetchTrending(page = 1, perPage = 20) {
 }
 
 async function searchAnime(search, page = 1, perPage = 20) {
-  const cacheKey = `search:${search}:${page}:${perPage}`;
+  // Ensure we have valid integers for pagination
+  const p = parseInt(page) || 1;
+  const pp = parseInt(perPage) || 20;
+  
+  const cacheKey = `search:${search}:${p}:${pp}`;
   try {
     const cached = await redisClient.get(cacheKey);
-    if (cached) return JSON.parse(cached);
+    if (cached) {
+      console.log(`[Anilist] Cache hit for search: ${search}`);
+      return JSON.parse(cached);
+    }
   } catch (err) {
-    console.error('Redis error:', err);
+    console.error('[Anilist] Redis error:', err);
   }
 
-  const response = await axios.post(ANILIST_URL, {
-    query: searchQuery,
-    variables: { search, page, perPage }
-  });
-  const data = response.data.data.Page.media;
-
+  console.log(`[Anilist] Fetching search from API: ${search} (page: ${p}, perPage: ${pp})`);
   try {
-    await redisClient.setEx(cacheKey, CACHE_TTL, JSON.stringify(data));
-  } catch (err) {
-    console.error('Redis error:', err);
-  }
+    const response = await axios.post(ANILIST_URL, {
+      query: searchQuery,
+      variables: { search, page: p, perPage: pp }
+    });
 
-  return data;
+    if (response.data.errors) {
+      console.error('[Anilist] API errors:', response.data.errors);
+      return [];
+    }
+
+    const data = response.data.data.Page.media || [];
+    console.log(`[Anilist] Found ${data.length} results for: ${search}`);
+
+    try {
+      await redisClient.setEx(cacheKey, CACHE_TTL, JSON.stringify(data));
+    } catch (err) {
+      console.error('[Anilist] Redis cache set error:', err);
+    }
+
+    return data;
+  } catch (err) {
+    console.error('[Anilist] API request failed:', err.message);
+    if (err.response && err.response.data) {
+      console.error('[Anilist] API error data:', JSON.stringify(err.response.data));
+    }
+    return [];
+  }
 }
 
 async function fetchDetails(id) {

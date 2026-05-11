@@ -31,13 +31,18 @@ const resolvers = {
       }));
     },
     searchAnime: async (_, { query, page, perPage }) => {
+      console.log(`[Resolver] searchAnime called with query: "${query}", page: ${page}, perPage: ${perPage}`);
       const mediaList = await anilist.searchAnime(query, page, perPage);
+      console.log(`[Resolver] searchAnime returned ${mediaList?.length || 0} results`);
+      
+      if (!mediaList) return [];
+      
       return mediaList.map(media => ({
         anilistId: media.id,
         metadata: {
           titles: media.title,
           description: media.description,
-          coverImage: media.coverImage.large,
+          coverImage: media.coverImage?.large,
           averageScore: media.averageScore
         }
       }));
