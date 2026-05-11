@@ -132,15 +132,24 @@ async function searchAnime(search, page = 1, perPage = 20) {
     const response = await axios.post(ANILIST_URL, {
       query: searchQuery,
       variables: { search, page: p, perPage: pp }
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      }
     });
 
     if (response.data.errors) {
-      console.error('[Anilist] API errors:', response.data.errors);
+      console.error('[Anilist] API errors:', JSON.stringify(response.data.errors));
       return [];
     }
 
-    const data = response.data.data.Page.media || [];
+    const data = response.data.data?.Page?.media || [];
     console.log(`[Anilist] Found ${data.length} results for: ${search}`);
+    
+    if (data.length === 0) {
+      console.log('[Anilist] Raw Response for 0 results:', JSON.stringify(response.data));
+    }
 
     try {
       await redisClient.setEx(cacheKey, CACHE_TTL, JSON.stringify(data));
