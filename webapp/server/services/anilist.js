@@ -33,7 +33,7 @@ query ($page: Int, $perPage: Int) {
 const searchQuery = `
 query ($search: String, $page: Int, $perPage: Int) {
   Page(page: $page, perPage: $perPage) {
-    media(search: $search, type: ANIME, isAdult: false, sort: [SEARCH_MATCH, POPULARITY_DESC]) {
+    media(search: $search, type: ANIME) {
       id
       title {
         romaji
@@ -97,6 +97,12 @@ async function fetchTrending(page = 1, perPage = 20) {
     const response = await axios.post(ANILIST_URL, {
       query: trendingQuery,
       variables: { page: p, perPage: pp }
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'NyaaStream/1.0.0'
+      }
     });
     const data = response.data.data.Page.media;
 
@@ -143,6 +149,7 @@ async function searchAnime(search, page = 1, perPage = 20) {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'User-Agent': 'NyaaStream/1.0.0'
       }
     });
 
@@ -184,6 +191,12 @@ async function fetchDetails(id) {
     const response = await axios.post(ANILIST_URL, {
       query: detailsQuery,
       variables: { id }
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'NyaaStream/1.0.0'
+      }
     });
     const data = response.data.data.Media;
 
